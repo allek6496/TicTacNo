@@ -1,5 +1,6 @@
 from tkinter import Tk, Canvas
 from time import sleep
+from random import randint
 root = Tk()
 screenWidth = 800
 screenHeight = 800
@@ -53,10 +54,10 @@ class game:
         for x in range(self.X):
             for y in range(self.Y):
                 if self.board[x][y] != 0:
-                    dump.append(screen.create_text((x + 0.5)*self.width, (y + 0.5)*self.height, text=self.board[x][y]/100, font="Arial 200"))
+                    dump.append(screen.create_text((x + 0.5)*self.width, (y + 0.5)*self.height, text=self.board[x][y], font="Arial 200", fill="#ab000d" if self.board[x][y]=="X" else "#001970"))
 
                 if self.currMove[x][y] != 0:
-                    dump.append(screen.create_text((x + 0.5)*self.width, (y + 0.5)*self.height, text=str(self.currMove[x][y]/100), anchor="n", font="Arial 64"))
+                    dump.append(screen.create_text((x + 0.5)*self.width, (y + 0.5)*self.height, text=str(self.currMove[x][y]/100), anchor="n", font="Arial 64", fill="#b71c1c" if self.turn=="X" else "#1a237e"))
 
                 for j in range(len(self.moves)):
                     current = self.moves[j][x][y]
@@ -65,14 +66,14 @@ class game:
                             # textSize(16);
                             # textAlign(LEFT, TOP);
                             # text(moves[i][j]/100, j%3*200+10, int(j/3)*200 + 10+ 10*i)
-                            dump.append(screen.create_text(x*self.width + 10, y*self.height + (j+1)*10, text=str(current/100), anchor="nw", font="Arial 16"))
+                            dump.append(screen.create_text(x*self.width + 10, y*self.height + (j+1)*10, text=str(current/100), anchor="nw", font="Arial 16", fill="#7f0000"))
                         else:
                             # textSize(16);
                             # textAlign(RIGHT, TOP);
                             # text(moves[i][j]/100, j%3*200+190, int(j/3)*200 + 10 + 10*i)
-                            dump.append(screen.create_text(x*self.width + 190, y*self.height + (j+1)*10, text=str(current/100), anchor="ne", font="Arial 16"))
+                            dump.append(screen.create_text(x*self.width + 190, y*self.height + (j+1)*10, text=str(current/100), anchor="ne", font="Arial 16", fill="#000051"))
 
-        dump.append(screen.create_text(mouseX, mouseY, text=str(self.moveLeft/100), anchor="ne", font= " Arial 32", fill="red" if self.turn=="X" else "blue"))
+        dump.append(screen.create_text(mouseX, mouseY, text=str(self.moveLeft/100), anchor="ne", font= " Arial 32", fill="#b71c1c" if self.turn=="X" else "#1a237e"))
 
     #gets which square the mouse is in 
     def getCurrSquare(self):
@@ -133,6 +134,26 @@ class game:
             self.currMove = self.generateBoard()
             self.moveLeft = 100
 
+        if clicked and self.moveLeft == 100:
+            currSquare = self.getCurrSquare()
+            x = currSquare[0] 
+            y = currSquare[1]
+
+            if board[x][y] == 0:
+                die = randint(0, 100)
+                turn = "X"
+                for move in self.moves:
+                    die -= move[x][y]
+                    if die < 0:
+                        board[x][y] = turn
+                        
+                        break
+                    elif turn == "X":
+                        turn = "O"
+                    else:
+                        turn = "X" 
+
+
         self.draw()
 
 def setInitialValues(): 
@@ -156,8 +177,9 @@ def cleanup():
     dump = []
 
 def afterUpdates():
-    global scrollD, keysPressed
+    global scrollD, keysPressed, clicked
     
+    clicked = False
     scrollD = 0
     keysPressed = []
 
@@ -218,16 +240,11 @@ def mouseClick(event):
     clicked = True
     # print("clicked at", mouseX, mouseY)
 
-def mouseRelease(event):
-    global mouseX, mouseY, clicked
-    clicked = False
-
 root.after(1000, runGame)
 
 screen.bind("<Motion>", mouseMove)
 screen.bind("<MouseWheel>", scrollWheel)
 screen.bind("<Button-1>", mouseClick)
-screen.bind("<ButtonRelease-1>", mouseRelease)
 screen.bind("<Key>", buttonPress)
 
 screen.pack()
