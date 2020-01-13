@@ -1,5 +1,7 @@
 from tkinter import Tk, Canvas
 from time import sleep
+from random import randint
+from math import inf
 root = Tk()
 screenWidth = 800
 screenHeight = 800
@@ -22,6 +24,7 @@ class game:
         self.placeIncrement = 5
         self.scrollThreshold = 2
         self.scrollTotal = 0
+        self.measured = False
         
     #draw fancy effects behind board and stuff
     def drawEffects(self):
@@ -93,6 +96,42 @@ class game:
 
         return total
 
+    def fix(self, turn):
+        for x in self.X:
+            for y in self.Y:
+                if self.getSquare(x, y) > 1:
+                    A = self.moves[turn][x][y]
+                    S = sum([X if not(X == x and Y == y) else 0 for X in Y for Y in self.moves[turn]])
+                    delta = (100-A)/S
+
+                    for t in range(len(self.moves)):
+                        if t != turn:
+                            self.change(t, x, y, self.moves[t][x][y]*delta)
+
+
+    #set a specific number to 0 while keeping the rest of the move the same
+    def change(self, t, x, y, newVal):
+        V = self.moves[t][x][y] - newVal
+        
+        a = [X for X in self.moves[t]]
+        b = []
+        for Y in a:
+            b.append(Y)
+
+        print(b)
+        S = sum(b)
+
+        R = (S + V)/S
+
+        for X in self.X:
+            for Y in self.Y:
+                if not(X == x and Y == y):
+                    self.moves[t][X][Y] *= R
+
+        self.moves[t][x][y] = newVal
+
+        self.fix(t)    
+
     #To be run every frame
     def update(self):
         global scrollD
@@ -132,6 +171,36 @@ class game:
             self.moves.append(self.currMove)
             self.currMove = self.generateBoard()
             self.moveLeft = 100
+            self.measured = False
+
+        if clicked and self.moveLeft == 100 and not self.measured:
+            currSquare = self.getCurrSquare()
+            x = currSquare[0]
+            y = currSquare[1]
+
+            if self.getSquare(x, y) > 0:
+                self.measured = True
+                print("measured", x, y)
+                die = randint(0, 100)
+                turn = 'X'
+                picked = None
+                for turn in range(len(self.moves)):
+                    if self.moves[turn][x][y] < die:
+                        die -= self.moves[turn][x][y]
+                    
+                        self.moves[turn][x][y] = 0
+
+                        self.change(turn, x, y, 0)
+
+                        if die < 0:
+                            die = inf
+                            self.board[x][y] = turn
+                            picked = turn
+
+                    turn = 'O' if turn == 'X' else 'X'
+
+                if picked:
+                    self.moves.pop(picked)
 
         self.draw()
 
