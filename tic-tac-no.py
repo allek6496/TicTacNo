@@ -64,16 +64,16 @@ class game:
                 for j in range(len(self.moves)):
                     current = self.moves[j][x][y]
                     if current != 0:
-                        if j%2 == 0:
+                        if self.moves[j][-1] == 'X':
                             # textSize(16);
                             # textAlign(LEFT, TOP);
                             # text(moves[i][j]/100, j%3*200+10, int(j/3)*200 + 10+ 10*i)
-                            dump.append(screen.create_text(x*self.width + 10, y*self.height + (j+1)*10, text=str(current/100), anchor="nw", font="Arial 16", fill="#7f0000"))
+                            dump.append(screen.create_text(x*self.width + 10, y*self.height + (j+1)*10, text=str(int(current)/100), anchor="nw", font="Arial 16", fill="#7f0000"))
                         else:
                             # textSize(16);
                             # textAlign(RIGHT, TOP);
                             # text(moves[i][j]/100, j%3*200+190, int(j/3)*200 + 10 + 10*i)
-                            dump.append(screen.create_text(x*self.width + 190, y*self.height + (j+1)*10, text=str(current/100), anchor="ne", font="Arial 16", fill="#000051"))
+                            dump.append(screen.create_text(x*self.width + 190, y*self.height + (j+1)*10, text=str(int(current)/100), anchor="ne", font="Arial 16", fill="#000051"))
 
         dump.append(screen.create_text(mouseX, mouseY, text=str(self.moveLeft/100), anchor="ne", font= " Arial 32", fill="#b71c1c" if self.turn=="X" else "#1a237e"))
 
@@ -97,11 +97,15 @@ class game:
         return total
 
     def fix(self, turn):
-        for x in self.X:
-            for y in self.Y:
-                if self.getSquare(x, y) > 1:
+        for x in range(self.X):
+            for y in range(self.Y):
+                if self.getSquare(x, y) > 100:
                     A = self.moves[turn][x][y]
-                    S = sum([X if not(X == x and Y == y) else 0 for X in Y for Y in self.moves[turn]])
+                    a = [self.moves[turn][X] for X in range(self.X)]
+                    b = []
+                    for part in a:
+                        b += part
+                    S = sum(b)
                     delta = (100-A)/S
 
                     for t in range(len(self.moves)):
@@ -113,18 +117,23 @@ class game:
     def change(self, t, x, y, newVal):
         V = self.moves[t][x][y] - newVal
         
-        a = [X for X in self.moves[t]]
-        b = []
-        for Y in a:
-            b.append(Y)
+        a = []
+        for X in range(self.X):
+            a += self.moves[t][X]
 
-        print(b)
-        S = sum(b)
+        a.pop(x*self.X + y)
 
-        R = (S + V)/S
+        # print(b)
+        S = sum(a)
 
-        for X in self.X:
-            for Y in self.Y:
+        try:
+            R = (S + V)/S
+        except ZeroDivisionError:
+            R = 0
+            print(self.moves)
+
+        for X in range(self.X):
+            for Y in range(self.Y):
                 if not(X == x and Y == y):
                     self.moves[t][X][Y] *= R
 
@@ -135,6 +144,17 @@ class game:
     #To be run every frame
     def update(self):
         global scrollD
+
+        resolved = []
+        for t in range(len(self.moves)):
+            for x in range(self.X):
+                for y in range(self.Y):
+                    if round(self.moves[t][x][y]) == 100:
+                        self.board[x][y] = self.moves[t][-1]
+                        resolved.append(t)
+        
+        for turn in sorted(resolved, reverse=True):
+            self.moves.pop(turn)
 
         # print(self.currMove)
 
@@ -155,7 +175,6 @@ class game:
                 y = currSquare[1]
 
                 if self.currMove[x][y] + delta >= 0 and 0 <= self.getSquare(x, y) + delta <= 100:
-                    print("changed")
                     self.moveLeft -= delta
                     self.currMove[x][y] += delta
 
@@ -167,8 +186,8 @@ class game:
                         self.moveLeft = 100
         
         if "Return" in keysPressed and self.moveLeft == 0:
+            self.moves.append(self.currMove + [self.turn])
             self.turn = 'O' if self.turn == 'X' else 'X'
-            self.moves.append(self.currMove)
             self.currMove = self.generateBoard()
             self.moveLeft = 100
             self.measured = False
@@ -182,45 +201,23 @@ class game:
                 self.measured = True
                 print("measured", x, y)
                 die = randint(0, 100)
-                turn = 'X'
                 picked = None
                 for turn in range(len(self.moves)):
-                    if self.moves[turn][x][y] < die:
-                        die -= self.moves[turn][x][y]
-                    
-                        self.moves[turn][x][y] = 0
+                    die -= self.moves[turn][x][y]
+                
+                    # self.moves[turn][x][y] = 0
 
+                    # self.change(turn, x, y, 0)
+
+                    if die < 0:
+                        die = 1000000
+                        self.change(turn, x, y, 100)
+                        picked = turn
+                    else:
                         self.change(turn, x, y, 0)
-
-                        if die < 0:
-                            die = inf
-                            self.board[x][y] = turn
-                            picked = turn
-
-                    turn = 'O' if turn == 'X' else 'X'
 
                 if picked:
                     self.moves.pop(picked)
-
-        if clicked and self.moveLeft == 100:
-            currSquare = self.getCurrSquare()
-            x = currSquare[0] 
-            y = currSquare[1]
-
-            if board[x][y] == 0:
-                die = randint(0, 100)
-                turn = "X"
-                for move in self.moves:
-                    die -= move[x][y]
-                    if die < 0:
-                        board[x][y] = turn
-                        
-                        break
-                    elif turn == "X":
-                        turn = "O"
-                    else:
-                        turn = "X" 
-
 
         self.draw()
 
