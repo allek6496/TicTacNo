@@ -96,50 +96,87 @@ class game:
 
         return total
 
-    def fix(self, turn):
-        for x in range(self.X):
-            for y in range(self.Y):
-                if self.getSquare(x, y) > 100:
-                    A = self.moves[turn][x][y]
-                    a = [self.moves[turn][X] for X in range(self.X)]
-                    b = []
-                    for part in a:
-                        b += part
-                    S = sum(b)
-                    delta = (100-A)/S
+    # def fix(self, turn):
+    #     for x in range(self.X):
+    #         for y in range(self.Y):
+    #             for t in range(len(self.moves)):
+    #                 if self.moves[turn][x][y] == 100:
+    #                     if t != turn:
+    #                         self.change(t, x, y, 0)
+    #                         break
+    #             else:
+    #                 if self.getSquare(x, y) > 100:
+    #                     A = self.moves[turn][x][y]
+    #                     a = []
 
-                    for t in range(len(self.moves)):
-                        if t != turn:
-                            self.change(t, x, y, self.moves[t][x][y]*delta)
+    #                     for t in range(len(self.moves)):
+    #                         if t != turn:
+    #                             a.append(self.moves[t][x][y])
 
+    #                     S = sum(a)
+    #                     try:
+    #                         delta = (100-A)/S
+    #                     except ZeroDivisionError:
+    #                         delta = 0
+
+    #                     for t in range(len(self.moves)):
+    #                         if t != turn:
+    #                             self.change(t, x, y, self.moves[t][x][y]*delta)
 
     #set a specific number to 0 while keeping the rest of the move the same
-    def change(self, t, x, y, newVal):
-        V = self.moves[t][x][y] - newVal
-        
-        a = []
-        for X in range(self.X):
-            a += self.moves[t][X]
+    def change(self, t, x, y, newVal):  
+        current = self.getSquare(x, y)
+        A = self.moves[t][x][y]
 
-        a.pop(x*self.X + y)
+        if current - A + newVal <= 100:
+            self.moves[t][x][y] = newVal
+        else:
+            delta = (100 - newVal)/(current - A)
 
-        # print(b)
-        S = sum(a)
+            for turn in range(len(self.moves)):
+                if turn != t:
+                    self.change(turn, x, y, self.moves[turn][x][y]*delta)
+            
+            otherSum = 0
 
-        try:
-            R = (S + V)/S
-        except ZeroDivisionError:
-            R = 0
-            print(self.moves)
+            for X in range(self.X):
+                for Y in range(self.Y):
+                    if not(X == x and Y == y):
+                        otherSum += self.moves[t][X][Y]
 
-        for X in range(self.X):
-            for Y in range(self.Y):
-                if not(X == x and Y == y):
-                    self.moves[t][X][Y] *= R
+            otherDelta = (100 - newVal)/otherSum
 
-        self.moves[t][x][y] = newVal
+            for X in range(self.X):
+                for Y in range(self.Y):
+                    if  not(X == x and Y == y):
+                        self.change(t, X, Y, self.moves[t][X][Y]*otherDelta)
 
-        self.fix(t)    
+            self.moves[t][x][y] = newVal
+
+        # a = []
+        # for X in range(self.X):
+        #     a += self.moves[t][X]
+
+        # a.pop(x*self.X + y)
+
+        # # print(b)
+        # S = sum(a)
+
+        # try:
+        #     R = (S + self.moves[t][x][y] - newVal)/S
+        # except ZeroDivisionError:
+        #     R = 0
+        #     print(self.moves)
+
+        # for X in range(self.X):
+        #     for Y in range(self.Y):
+        #         if not(X == x and Y == y):
+        #             # self.moves[t][X][Y] *= R
+        #             self.change(t, X, Y, self.moves[t][X][Y]*R)
+
+        # self.moves[t][x][y] = newVal
+
+        # # self.fix(t)
 
     #To be run every frame
     def update(self):
@@ -212,8 +249,12 @@ class game:
                     if die < 0:
                         die = 1000000
                         self.change(turn, x, y, 100)
+                        # self.moves[turn][x][y] = 100
+                        # self.fix(turn)
                         picked = turn
                     else:
+                        # self.moves[turn][x][y] = 0
+                        # self.fix(turn)
                         self.change(turn, x, y, 0)
 
                 if picked:
