@@ -124,34 +124,76 @@ class game:
     #                             self.change(t, x, y, self.moves[t][x][y]*delta)
 
     #set a specific number to 0 while keeping the rest of the move the same
-    def change(self, t, x, y, newVal):  
-        current = self.getSquare(x, y)
+    def change(self, t, x, y, newVal, square = True, move = True):
         A = self.moves[t][x][y]
 
-        if current - A + newVal <= 100:
-            self.moves[t][x][y] = newVal
-        else:
-            delta = (100 - newVal)/(current - A)
+        if A == newVal or A == 0 or A == 100:
+            return
 
+        # if newVal > 100:
+        #     newVal = 100
+
+        self.moves[t][x][y] = newVal
+        # done.append((t, x, y))
+
+        if square:
+            S = 0
             for turn in range(len(self.moves)):
-                if turn != t:
-                    self.change(turn, x, y, self.moves[turn][x][y]*delta)
+                S += self.moves[turn][x][y]
+
+            if S > 100:
+                try:
+                    delta = (100 - newVal) / (S - newVal)
+                except ZeroDivisionError:
+                    delta = 0
+
+                for turn in range(len(self.moves)):
+                    if turn != t:
+                        self.change(turn, x, y, self.moves[turn][x][y]*delta, square = False)
+
+        if move:
+            try:    
+                delta = (100 - newVal) / (100 - A)
+            except ZeroDivisionError:
+                delta = 0
+        
+            for X in range(3):
+                for Y in range(3):
+                    if not (X == x and Y == y):
+                        self.change(t, X, Y, self.moves[t][X][Y]*delta, move = False)
+
+        # print("im good")
+
+        # print(moves, '\n')
+        
+    # def change(self, t, x, y, newVal):  
+    #     current = self.getSquare(x, y)
+    #     A = self.moves[t][x][y]
+
+    #     if current - A + newVal <= 100:
+    #         self.moves[t][x][y] = newVal
+    #     else:
+    #         delta = (100 - newVal)/(current - A)
+
+    #         for turn in range(len(self.moves)):
+    #             if turn != t:
+    #                 self.change(turn, x, y, self.moves[turn][x][y]*delta)
             
-            otherSum = 0
+    #         otherSum = 0
 
-            for X in range(self.X):
-                for Y in range(self.Y):
-                    if not(X == x and Y == y):
-                        otherSum += self.moves[t][X][Y]
+    #         for X in range(self.X):
+    #             for Y in range(self.Y):
+    #                 if not(X == x and Y == y):
+    #                     otherSum += self.moves[t][X][Y]
 
-            otherDelta = (100 - newVal)/otherSum
+    #         otherDelta = (100 - newVal)/otherSum
 
-            for X in range(self.X):
-                for Y in range(self.Y):
-                    if  not(X == x and Y == y):
-                        self.change(t, X, Y, self.moves[t][X][Y]*otherDelta)
+    #         for X in range(self.X):
+    #             for Y in range(self.Y):
+    #                 if  not(X == x and Y == y):
+    #                     self.change(t, X, Y, self.moves[t][X][Y]*otherDelta)
 
-            self.moves[t][x][y] = newVal
+    #         self.moves[t][x][y] = newVal
 
         # a = []
         # for X in range(self.X):
@@ -211,16 +253,17 @@ class game:
                 x = currSquare[0]
                 y = currSquare[1]
 
-                if self.currMove[x][y] + delta >= 0 and 0 <= self.getSquare(x, y) + delta <= 100:
-                    self.moveLeft -= delta
-                    self.currMove[x][y] += delta
+                if 0 <= x < self.X and 0 <= y < self.Y:
+                    if self.currMove[x][y] + delta >= 0 and 0 <= self.getSquare(x, y) + delta <= 100:
+                        self.moveLeft -= delta
+                        self.currMove[x][y] += delta
 
-                    if self.moveLeft < 0:
-                        self.currMove[x][y] -= delta
-                        self.moveLeft = 0
-                    elif self.moveLeft > 100:
-                        self.currMove[x][y] -= delta
-                        self.moveLeft = 100
+                        if self.moveLeft < 0:
+                            self.currMove[x][y] -= delta
+                            self.moveLeft = 0
+                        elif self.moveLeft > 100:
+                            self.currMove[x][y] -= delta
+                            self.moveLeft = 100
         
         if "Return" in keysPressed and self.moveLeft == 0:
             self.moves.append(self.currMove + [self.turn])
