@@ -123,44 +123,235 @@ class game:
     #                         if t != turn:
     #                             self.change(t, x, y, self.moves[t][x][y]*delta)
 
-    #set a specific number to 0 while keeping the rest of the move the same
-    def change(self, t, x, y, newVal, square = True, move = True):
-        A = self.moves[t][x][y]
+    def resolve(self, t, x, y, found):
+        if found:
+            self.board[x][y] = self.moves[t][-1]
 
-        if A == newVal or A == 0 or A == 100:
-            return
+            self.moves.pop(t)
 
-        # if newVal > 100:
-        #     newVal = 100
-
-        self.moves[t][x][y] = newVal
-        # done.append((t, x, y))
-
-        if square:
-            S = 0
             for turn in range(len(self.moves)):
-                S += self.moves[turn][x][y]
+                self.resolve(turn, x, y, False)
+        else:
+            A = self.moves[t][x][y]
+            self.moves[t][x][y] = 0
 
-            if S > 100:
-                try:
-                    delta = (100 - newVal) / (S - newVal)
-                except ZeroDivisionError:
-                    delta = 0
+            S = 0
+            for X in range(self.X):
+                for Y in range(self.Y):
+                    S += self.moves[t][X][Y]
 
-                for turn in range(len(self.moves)):
-                    if turn != t:
-                        self.change(turn, x, y, self.moves[turn][x][y]*delta, square = False)
+            delta = 100 / S
 
-        if move:
-            try:    
-                delta = (100 - newVal) / (100 - A)
-            except ZeroDivisionError:
-                delta = 0
+            for X in range(self.X):
+                for Y in range(self.Y):
+                    if self.moves[t][X][Y] != 0:
+                        self.changeSquare(t, X, Y, self.moves[t][X][Y]*delta)
+
+    def changeSquare(self, t, x, y, newVal):
+        self.moves[t][x][y] = newVal
+
+        S = self.getSquare(x, y)
+        if S > 100:
+            delta = (100 - newVal) / (S - newVal)
+
+            for turn in range(len(self.moves)):
+                if turn != t:
+                    self.changeMove(turn, x, y, self.moves[turn][x][y]*delta)
+
+    def changeMove(self, t, x, y, newVal):
+        self.moves[t][x][y] = newVal
+
+        S = 0
+        for X in range(self.X):
+            for Y in range(self.Y):
+                S += self.moves[t][X][Y]
         
-            for X in range(3):
-                for Y in range(3):
-                    if not (X == x and Y == y):
-                        self.change(t, X, Y, self.moves[t][X][Y]*delta, move = False)
+        if int(S*10000)/10000 != 100:
+            delta = (100 - newVal) / (S - newVal)
+
+            for X in range(self.X):
+                for Y in range(self.Y):
+                    if not(X == x and Y == y):
+                        self.changeSquare(t, X, Y, self.moves[t][X][Y]*delta)
+
+    #set a specific number to 0 while keeping the rest of the move the same
+
+    # def changed(self, t, x, y):
+    #     queue = [(t, x, y)]
+    #     done = []
+        
+    #     while len(queue) > 0:
+    #         print(queue)
+    #         print(self.moves, end="\n")
+            
+    #         if queue[0] in done:
+    #             queue.pop(0)
+    #             continue
+            
+    #         t = queue[0][0]
+    #         x = queue[0][1]
+    #         y = queue[0][2]
+    #         A = self.moves[t][x][y]
+
+    #         done.append(queue.pop(0))
+
+    #         #square
+    #         S = 0
+    #         for turn in range(len(self.moves)):
+    #             if turn != t:
+    #                 S += self.moves[turn][x][y]
+
+    #         try:
+    #             delta = (100 - A) / S
+    #         except ZeroDivisionError:
+    #             delta = 0
+
+    #         if S + A > 100:
+    #             for turn in range(len(self.moves)):
+    #                 if turn != t and self.moves[turn][x][y] != 0:
+    #                     self.moves[turn][x][y] *= delta
+                        
+    #                     new = (turn, x, y)
+    #                     if new not in queue:
+    #                         queue.append(new)
+
+    #         #move:
+    #         S = 0
+    #         for X in range(self.X):
+    #             for Y in range(self.Y):
+    #                 if not(X == x and Y == y):
+    #                     S += self.moves[t][X][Y]
+
+    #         try:
+    #             delta = (100 - A) / S
+    #         except ZeroDivisionError:
+    #             delta = 0
+
+    #         if S + A != 100:
+    #             for X in range(self.X):
+    #                 for Y in range(self.Y):
+    #                     if not (X == x and Y == y) and self.moves[turn][x][y] != 0:
+    #                         self.moves[turn][x][y] *= delta
+
+    #                         new = (t, X, Y)
+    #                         if new not in queue:
+    #                             queue.append(new)
+
+
+    #queue is like [(t, x, y, prev), ...]
+    # def fix(self, resolved, queued):
+    #     queue = queued[:]
+    #     done = resolved[:]
+    #     if len(queue) == 0:
+    #         return
+    #     if queue[0] in resolved:
+    #         queue.pop(0)
+    #         self.fix(done, queue)
+    #         return
+
+    #     print(queue)
+    #     print(self.moves)
+    #     print()
+    #     t = queue[0][0]
+    #     x = queue[0][1]
+    #     y = queue[0][2]
+    #     newVal = self.moves[t][x][y]
+
+    #     A = queue[0][3]
+    #     self.moves[t][x][y] = newVal
+
+    #     if A == newVal:
+    #         done.append(queue.pop(0))
+    #         self.fix(done, queue)
+    #         return
+        
+    #     done.append(queue.pop(0))
+
+    #     #square
+    #     S = 0
+    #     for turn in range(len(self.moves)):
+    #         S += self.moves[turn][x][y]
+
+    #     try:    
+    #         delta = (100 - newVal) / (S - A)
+    #     except ZeroDivisionError:
+    #         delta = 0
+        
+    #     if S - A + newVal > 100:
+    #         for turn in range(len(self.moves)):
+    #             if turn != t and self.moves[turn][x][y] != 0:
+    #                 queue.append((turn, x, y, self.moves[turn][x][y]))
+    #                 self.moves[turn][x][y] = self.moves[turn][x][y]*delta
+
+    #     #move
+    #     S = 0
+    #     for X in range(self.X):
+    #         for Y in range(self.Y):
+    #             S += self.moves[t][X][Y]
+
+    #     try:    
+    #         delta = (100 - newVal) / (S - A)
+    #     except ZeroDivisionError:
+    #         delta = 0
+
+    #     if S - A + newVal != 100:
+    #         for X in range(self.X):
+    #             for Y in range(self.Y):
+    #                 if not(X == x and Y == y) and self.moves[t][X][Y] != 0:
+    #                     queue.append((turn, X, Y, self.moves[turn][X][Y]))
+    #                     self.moves[turn][X][Y] = self.moves[turn][X][Y]*delta
+
+    #     self.fix(done, queue)
+
+    # def change(self, t, x, y, newVal, square = False, move = False):
+    #     try:
+    #         A = self.moves[t][x][y]
+    #     except IndexError:
+    #         return 
+
+    #     if A == newVal:
+    #         return
+
+    #     # if newVal > 100:
+    #     #     newVal = 100
+
+    #     self.moves[t][x][y] = newVal
+    #     # done.append((t, x, y))
+
+    #     if move:
+    #         S = 0
+    #         for X in range(self.X):
+    #             for Y in range(self.Y):
+    #                 S += self.moves[t][X][Y]
+
+    #         if S != 100:
+    #             # print(S)
+    #             try:    
+    #                 delta = (100 - newVal) / (100 - A)
+    #             except ZeroDivisionError:
+    #                 delta = 0
+            
+    #             for X in range(3):
+    #                 for Y in range(3):
+    #                     if not (X == x and Y == y):
+    #                         # print(self.moves[t][X][Y], delta, end='\n')
+    #                         self.change(t, X, Y, self.moves[t][X][Y]*delta, square = True)
+    #                         # print(self.moves[t][X][Y])
+
+    #     if square:
+    #         S = 0
+    #         for turn in range(len(self.moves)):
+    #             S += self.moves[turn][x][y]
+
+    #         if S != S - newVal + A:
+    #             try:
+    #                 delta = (S - newVal + A - newVal) / (S - newVal)
+    #             except ZeroDivisionError:
+    #                 delta = 0
+
+    #             for turn in range(len(self.moves)):
+    #                 if turn != t:
+    #                     self.change(turn, x, y, self.moves[turn][x][y]*delta, move = True)
 
         # print("im good")
 
@@ -279,29 +470,25 @@ class game:
 
             if self.getSquare(x, y) > 0:
                 self.measured = True
-                print("measured", x, y)
                 die = randint(0, 100)
-                picked = None
+                # picked = None
                 for turn in range(len(self.moves)):
-                    die -= self.moves[turn][x][y]
-                
+                    try:
+                        die -= self.moves[turn][x][y]
+                    except IndexError:
+                        continue            
                     # self.moves[turn][x][y] = 0
 
                     # self.change(turn, x, y, 0)
 
                     if die < 0:
                         die = 1000000
-                        self.change(turn, x, y, 100)
-                        # self.moves[turn][x][y] = 100
-                        # self.fix(turn)
-                        picked = turn
+                        self.resolve(turn, x, y, True)
                     else:
-                        # self.moves[turn][x][y] = 0
-                        # self.fix(turn)
-                        self.change(turn, x, y, 0)
+                        self.resolve(turn, x, y, False)
 
-                if picked:
-                    self.moves.pop(picked)
+                # if picked:
+                #     self.moves.pop(picked)
 
         self.draw()
 
