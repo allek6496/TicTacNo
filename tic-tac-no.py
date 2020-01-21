@@ -1,7 +1,7 @@
-from tkinter import Tk, Canvas
+from tkinter import Tk, Canvas, PhotoImage
 from time import sleep
 from random import randint, uniform
-from math import inf
+from math import inf, sqrt
 root = Tk()
 screenWidth = 800
 screenHeight = 800
@@ -9,22 +9,31 @@ screen = Canvas(root, width = screenWidth, height = screenHeight, background = "
 
 class qbit:
 
-    def __init__(self, x, y, xRange, yRange):
+    def __init__(self, x, y, range):
         self.x = x
         self.y = y
-        self.xRange = xRange
-        self.yRange = yRange
-        self.xVel = uniform(-2, 2)
-        self.yVel = uniform(-2, 2)
+        self.startX = x
+        self.startY = y
+        self.range = range
+        self.xVel = uniform(-6, 6)
+        self.xVel += self.xVel/abs(self.xVel)
+        self.yVel = uniform(-6, 6)
+        self.yVel += self.yVel/abs(self.yVel)
         self.colour = "red"
-        self.radius = 3
+        self.radius = 6
         self.normalizeVel()
 
     def normalizeVel(self):
-        newX = self.xVel/(self.xVel + self.yVel)
-        newY = self.yVel/(self.xVel + self.yVel)
-        self.xVel = newX
-        self.yVel = newY
+        try:
+            newX = self.xVel/(self.xVel**2 + self.yVel**2)
+        except ZeroDivisionError:
+            newX = 0
+        try:
+            newY = self.yVel/(self.xVel**2 + self.yVel**2)
+        except ZeroDivisionError:
+            newY = 0
+        self.xVel = newX*8
+        self.yVel = newY*8
 
     def draw(self):
         global dump
@@ -32,25 +41,36 @@ class qbit:
         dump.append(screen.create_oval(self.x - self.radius,
                                        self.y - self.radius,
                                        self.x + self.radius,
-                                       self.y + self.radius, fill=self.colour))
+                                       self.y + self.radius, fill=self.colour, outline=self.colour))
 
     def update(self):
         global qbits
 
         self.x += self.xVel
         self.y += self.yVel
-        if not(self.xRange[0] <= self.x <= self.xRange[1] and 
-               self.yRange[0] <= self.y <= self.yRange[1]):
+
+        distance = sqrt((self.x - self.startX)**2 + (self.y - self.startY)**2)
+
+        if distance >= self.range:
             qbits.remove(self)
-        
-        if randint(0, 5) == 0:
+
+        self.radius = 6*(distance/self.range - 1)
+
+        if randint(0, 10) == 0:
             self.colour = "red" if self.colour == "blue" else "blue"
+
+        # if randint(0, 5) == 0:
+        #     self.xVel += uniform(-0.5, 0.5)
+        # if randint(0, 5) == 0:
+        #     self.yVel += uniform(-0.5, 0.5)
 
         self.draw()
 
 class game:
     
-    def __init__(self, X=3, Y=3, quantum=True, effects=0, people = 2):
+    def __init__(self, X=3, Y=3, quantum=True, effects=0, people = 2, horde=False):
+        self.horde = horde
+        self.hordeProg = 0
         self.X = X
         self.Y = Y
         self.players = {"X": ["#820c0c", "#7f0000", "#ab000d"], 'O': ["#1a237e", "#000051", "#001970"], 'V': ["#28871b", "#154a0d", "#246134"], 'Q': ["#38115e", "#4b1085", "#412973"]}
@@ -70,10 +90,36 @@ class game:
         self.measured = False
         self.winner = None
         self.winTimer = 60
+
+        if effects != 0:
+            self.glitchChance = 360/effects
+            self.glitchOffset = [0, 0]
+        else:
+            self.glitchChance = 0
+            self.glitchOffset = [0, 0]
         
     #draw fancy effects behind board and stuff
     def drawEffects(self):
-        pass
+        global qbits
+        # if self.effects > 1:
+        #     if randint(0, int(self.glitchChance/8)) == 0:
+        #         qbits.append(qbit(mouseX, mouseY, 5*self.effects))
+
+        if randint(0, self.glitchChance) == 0:
+            self.glitchOffset = [randint(-5, 5)*2, randint(-5, 5)*2]
+            print("glitched", self.glitchOffset)
+        elif not(self.glitchOffset[0] == 0 and self.glitchOffset[1] == 0):
+            
+            for i in range(2):
+                self.glitchOffset[i] /= 1.4
+                if self.glitchOffset[i] < 0.5:
+                    self.glitchOffset[i] = 0
+
+            for i in range(1, self.X):
+                dump.append(screen.create_line(i*self.width+self.glitchOffset[0], 0, i*self.width+self.glitchOffset[0], screenHeight, width=2, fill="red" if self.glitchOffset[0] > 0 else "blue"))
+            
+            for i in range(1, self.Y):
+                dump.append(screen.create_line(0, i*self.height + self.glitchOffset[1], screenWidth, i*self.height + self.glitchOffset[1], width=2, fill="red" if self.glitchOffset[0] > 0 else "blue"))
 
     def generateBoard(self):
         newBoard = []
@@ -85,9 +131,11 @@ class game:
 
     #draws the board on the screen
     def draw(self):
-        global dump
+        global dump, qbits
 
         if self.winner:
+            if len(qbits) > 0:
+                qbits = []
             if self.winner == 'T':
                 dump.append(screen.create_text(screenWidth/2, screenHeight/2, text=self.winner, font="Arial 400", fill="gray40"))
             else:
@@ -117,13 +165,13 @@ class game:
                         if self.people == 2:
                             if current != 0:
                                 if self.moves[j][-1] == 'X':
-                                    dump.append(screen.create_text(x*self.width + 10, y*self.height + (j+1)*15, text=str(int(current)/100), anchor="nw", font="Arial 16", fill="#7f0000"))
+                                    dump.append(screen.create_text(x*self.width + 20*(j//5) + 10, y*self.height + (j%5+1)*15, text=str(int(current)/100), anchor="nw", font="Arial 16", fill="#7f0000"))
                                 else:
-                                    dump.append(screen.create_text(x*self.width + 190, y*self.height + (j+1.5)*15, text=str(int(current)/100), anchor="ne", font="Arial 16", fill="#000051"))
+                                    dump.append(screen.create_text(x*self.width + 20*(j//5) + 190, y*self.height + (j%5+1.5)*15, text=str(int(current)/100), anchor="ne", font="Arial 16", fill="#000051"))
                         else:
                             if current != 0:
                                 i = list(self.players.keys()).index(self.moves[j][-1])
-                                dump.append(screen.create_text(x*self.width + 2, y*self.height + (j+0.5)*13, text=str(int(current)/100), anchor="nw", font="Arial 12", fill=self.players[self.moves[j][-1]][0]))
+                                dump.append(screen.create_text(x*self.width + 2 + 20*(j//5), y*self.height + (j+0.5)*13, text=str(int(current)/100), anchor="nw", font="Arial 12", fill=self.players[self.moves[j][-1]][0]))
 
             dump.append(screen.create_text(mouseX, mouseY, text=str(self.moveLeft/100), anchor="ne", font= " Arial 32", fill=self.players[self.turn][2]))
 
@@ -147,20 +195,25 @@ class game:
 
         return total
 
-    def measuringBits(self):
+    def measuringBits(self, x, y, r=0):
         global qbits
 
+        if r == 0:
+            r = self.width/2
+
+        x = (x+0.5)*(self.width)
+        y = (y+0.5)*(self.height)
+
         for i in range(self.effects*10):
-            currSquare = self.getCurrSquare()
-            x = currSquare[0]*self.width
-            y = currSquare[1]*self.height
-            qbits.append(qbit(x, y, [x-self.width/2, x+self.width/2], 
-                                    [y-self.height/2, y+self.height/2]))
+            qbits.append(qbit(x, y, r))
 
 
     def resolve(self, t, x, y, found):
         global hit
         hit = []
+
+        self.measuringBits(x, y, self.width/2)
+
         if found:
             self.board[x][y] = self.moves[t][-1]
 
@@ -187,6 +240,7 @@ class game:
         if (t, x, y) in hit:
             return
         else:
+            self.measuringBits(x, y, 20)
             hit.append((t, x, y))
             self.moves[t][x][y] = newVal
 
@@ -200,11 +254,14 @@ class game:
                 for turn in range(len(self.moves)):
                     if turn != t and self.moves[turn][x][y] != 0:
                         self.changeMove(turn, x, y, self.moves[turn][x][y]*delta)
+                    else:
+                        self.measuringBits(x, y, 20)
 
     def changeMove(self, t, x, y, newVal):
         if (t, x, y) in hit:
             return
         else:
+            self.measuringBits(x, y, 20)
             hit.append((t, x, y))
             self.moves[t][x][y] = newVal
 
@@ -300,14 +357,25 @@ class game:
         return None
 
     def passTurn(self):
-        current = list(self.players.keys()).index(self.turn)
-        print(current)
+        if self.horde:
+            self.hordeProg += 1
+            if self.hordeProg == self.people:
+                self.turn = 'X'
+                self.hordeProg = 0
+            else:
+                self.turn = 'V'
+        else:
+            current = list(self.players.keys()).index(self.turn)
 
-        current = current + 1
+            current = current + 1
 
-        self.turn = list(self.players.keys())[current%self.people]
+            self.turn = list(self.players.keys())[current%self.people]
+        print(self.turn)
+
     #To be run every frame
     def update(self):
+        global qbits
+
         if self.winner:
             self.winTimer -= 1
             if self.winTimer <= 0:
@@ -357,6 +425,11 @@ class game:
                             elif self.moveLeft > 100:
                                 self.currMove[x][y] -= delta
                                 self.moveLeft = 100
+                            else:
+                                print(self.effects*3)
+                                for i in range(self.effects*3):
+                                    qbits.append(qbit(mouseX, mouseY, 15))
+                                    print("qbit made")
             
             if "Return" in keysPressed and self.moveLeft == 0:
                 self.moves.append(self.currMove + [self.turn])
@@ -398,8 +471,8 @@ class game:
 
 class campaignGame(game):
 
-    def __init__(self, X=3, Y=3, quantum=True, effects=0, people = 2):
-        game.__init__(self, X, Y, quantum, effects, people)
+    def __init__(self, X=3, Y=3, quantum=True, effects=0, people = 2, horde = False):
+        game.__init__(self, X, Y, quantum, effects, people, horde)
         self.delayTimer = 0
         self.turnProgression = 0
 
@@ -429,16 +502,17 @@ class campaignGame(game):
             if self.turn != 'X':
 
                 if self.delayTimer <= 0 and self.turnProgression == 0:
-                    self.delayTimer = randint(1, 3)*15
+                    self.delayTimer = randint(1, 2)*15
                     self.favPos = [randint(0, self.X-1), randint(0, self.Y-1)]
                     self.turnProgression = 1
 
-                    if randint(0, 1) == 0:
+                    if randint(0, 5) != 0:
                         currSquare = self.getCurrSquare()
                         x = randint(0, self.X-1)
                         y = randint(0, self.Y-1)
 
-                        if self.getSquare(x, y) > 0:
+                        if self.getSquare(x, y) > 0 and self.board[x][y] == 0:
+                            self.measuringBits(x, y)
                             self.measured = True
                             die = randint(0, 100)
                             # picked = None
@@ -460,8 +534,6 @@ class campaignGame(game):
                     self.delayTimer -= 1
 
                 if self.delayTimer <= 0 and self.turnProgression == 1:
-                    self.delayTimer = randint(2, 15)
-
                     if self.moveLeft > 0:
                         if randint(0, 12) == 0:
                             x = randint(0, self.X-1)
@@ -469,6 +541,7 @@ class campaignGame(game):
                             self.favPos = [x, y]
 
                             if self.getSquare(x, y) <= 95:
+                                self.delayTimer = randint(2, 15)
                                 self.currMove[x][y] += 5
                                 self.moveLeft -= 5
                         else:
@@ -476,6 +549,7 @@ class campaignGame(game):
                             y = self.favPos[1]
 
                             if self.getSquare(x, y) <= 95:
+                                self.delayTimer = randint(2, 15)
                                 self.currMove[x][y] += 5
                                 self.moveLeft -= 5
                     else:
@@ -484,7 +558,7 @@ class campaignGame(game):
                     self.delayTimer -= 1
 
                 if self.delayTimer <= 0 and self.turnProgression == 2:
-                    self.delayTimer = randint(1, 8)*15
+                    self.delayTimer = randint(2, 4)*7
 
                     self.turnProgression = 0
                     self.moves.append(self.currMove + [self.turn])
@@ -537,6 +611,7 @@ class campaignGame(game):
 
                     if self.getSquare(x, y) > 0:
                         self.measured = True
+                        self.measuringBits(x, y)
                         die = randint(0, 100)
                         # picked = None
                         for turn in range(len(self.moves)):
@@ -560,7 +635,7 @@ class campaignGame(game):
 
 
 def setInitialValues(): 
-    global qbits, modes, introLength, mouseX, mouseY, scrollD, running, page, size, sizes, clicked, board, dump, keysPressed
+    global introPics, qbits, modes, mouseX, mouseY, scrollD, running, page, size, sizes, clicked, board, dump, keysPressed
     keysPressed = []
     qbits = []
     dump = []
@@ -574,7 +649,9 @@ def setInitialValues():
     board = None
     sizes = [["3 X 3", 10, 10, 395, 95, 2], ["4 X 4", 405, 10, 790, 95, 2], ["5 X 5", 10, 105, 395, 190, 4]]
     modes = [["PVP", 10, 10, 395, 95], ["Campaign", 405, 10, 790, 95]]
-    introLength = 100
+    introPics = []
+    for i in range(4):
+        introPics.append(PhotoImage(file="assets/intro{}.gif".format(i)))
 
 def cleanup():
     global dump
@@ -608,7 +685,7 @@ def sizeSelect():
 
 def startPVP(X, Y, players):
     global board
-    board = game(X=X, Y=Y, people=players)
+    board = game(X=X, Y=Y, people=players, effects=2)
     changePage("PVP")
 
 def modeSelect():
@@ -619,26 +696,23 @@ def modeSelect():
         screen.create_text((button[1]+button[3])/2, (button[2]+button[4])/2 - 5, text=button[0], font="Arial 64", fill="black")
 
 def intro():
-    global introTimer
-    changePage("intro")
-
-    introTimer = introLength
+    changePage("intro0")
 
 def campaign():
     global board
 
     changePage("campaign")
-    board = campaignGame(X=5, Y=5, people=4)
+    board = campaignGame(X=5, Y=5, people=4, effects=2, horde=True)
 
 def runGame():
-    global board, page, clicked, scrollD, introTimer, dump
+    global board, page, clicked, scrollD, dump, qbits
     setInitialValues()
 
     modeSelect()
 
     while running:
-        for qbit in qbits:
-            qbit.update()
+        for q in qbits:
+            q.update()
 
         if page == "modes":
             for button in modes:
@@ -656,12 +730,17 @@ def runGame():
         if page == "PVP":
             board.update()
 
-        if page == "intro":
-            introTimer -= 1
-            dump.append(screen.create_text(screenWidth/2, screenHeight/2, text="A long time ago, in a galaxy far far away"))
+        # print(page[0:4])
 
-            if introTimer == 0:
+        if page[0:5] == "intro":
+
+            if page[-1] >= str(len(introPics)):
                 campaign()
+            elif clicked:
+                page = page[0:5] + str(int(page[-1]) + 1)
+                clicked = False
+            else:
+                dump.append(screen.create_image(400, 400, image=introPics[int(page[-1])], anchor="center"))
 
         if page == "campaign":
             board.update()
