@@ -176,37 +176,52 @@ class game:
         else:
             self.glitchChance = 0
         
-    #draw fancy effects
     def drawEffects(self):
-
+        """
+        Draw the special Red and Blue effects during the game
+        """        
         global qbits
 
+        #chance to set a random offset for the board
         if randint(0, self.glitchChance) == 0:
-            self.glitchOffset = [randint(-5, 5)*2, randint(-5, 5)*2]
-            # print("glitched", self.glitchOffset)
+            self.glitchOffset = [randint(-10, 10), randint(-10, 10)]
+            
+        #if there was no offset set, reduce the curent offset and draw it
         elif not(self.glitchOffset[0] == 0 and self.glitchOffset[1] == 0):
             
+            #reduce each component by an exponential amount
             for i in range(2):
                 self.glitchOffset[i] /= 1.4
+                
+                #this is important otherwise it would take a long time to fully go away
                 if self.glitchOffset[i] < 0.5:
                     self.glitchOffset[i] = 0
 
+            #draw the grid
             for i in range(1, self.X):
                 dump.append(screen.create_line(i*self.width+self.glitchOffset[0], 0, i*self.width+self.glitchOffset[0], 800, width=2, fill="red" if self.glitchOffset[0] > 0 else "blue"))
             
             for i in range(1, self.Y):
                 dump.append(screen.create_line(0, i*self.height + self.glitchOffset[1], 800, i*self.height + self.glitchOffset[1], width=2, fill="red" if self.glitchOffset[0] > 0 else "blue"))
 
+                
     def generateBoard(self):
+        """
+        Create a new self.X by self.Y arrray grid
+        """
         newBoard = []
         for x in range(self.X):
             newBoard.append([])
             for y in range(self.Y):
                 newBoard[-1].append(0)
+                
         return newBoard
 
-    #draws the board on the screen
+    
     def draw(self):
+        """
+        Draw the board on the screen
+        """
         global dump, qbits
 
         if self.winner:
