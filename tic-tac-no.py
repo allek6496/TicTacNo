@@ -178,7 +178,7 @@ class game:
         
     #draw fancy effects
     def drawEffects(self):
-        
+
         global qbits
 
         if randint(0, self.glitchChance) == 0:
@@ -761,65 +761,6 @@ class campaignGame(game):
 
             else:
                 game.update(self)
-                # delta = False
-                # if "Up" in keysPressed:
-                #     delta = self.placeIncrement
-                # elif "Down" in keysPressed:
-                #     delta = -1*self.placeIncrement
-
-                # if scrollD != 0 or delta:
-                #     self.scrollTotal += scrollD
-                #     if abs(self.scrollTotal) >= self.scrollThreshold or delta:
-                #         if not delta:
-                #             self.scrollTotal = 0
-                #             delta = scrollD//abs(scrollD)*self.placeIncrement
-                #         currSquare = self.getCurrSquare()
-                #         x = currSquare[0]
-                #         y = currSquare[1]
-
-                #         if 0 <= x < self.X and 0 <= y < self.Y:
-                #             if self.currMove[x][y] + delta >= 0 and 0 <= self.getSquare(x, y) + delta <= 100:
-                #                 self.moveLeft -= delta
-                #                 self.currMove[x][y] += delta
-
-                #                 if self.moveLeft < 0:
-                #                     self.currMove[x][y] -= delta
-                #                     self.moveLeft = 0
-                #                 elif self.moveLeft > 100:
-                #                     self.currMove[x][y] -= delta
-                #                     self.moveLeft = 100
-                
-                # if "Return" in keysPressed and self.moveLeft == 0:
-                #     self.moves.append(self.currMove + [self.turn])
-                #     self.passTurn()
-                #     self.currMove = self.generateBoard()
-                #     self.moveLeft = 100
-                #     self.measured = False
-
-                # if clicked and self.moveLeft == 100 and not self.measured:
-                #     currSquare = self.getCurrSquare()
-                #     x = currSquare[0]
-                #     y = currSquare[1]
-
-                #     if self.getSquare(x, y) > 0:
-                #         self.measured = True
-                #         self.measuringBits(x, y)
-                #         die = randint(0, 100)
-                #         # picked = None
-                #         for turn in range(len(self.moves)):
-                #             try:
-                #                 die -= self.moves[turn][x][y]
-                #             except IndexError:
-                #                 continue            
-                #             # self.moves[turn][x][y] = 0
-
-                #             # self.change(turn, x, y, 0)
-
-                #             if die < 0:
-                #                 die = 1000000
-                #                 self.resolve(turn, x, y, True)
-                #             else:
-                #                 self.resolve(turn, x, y, False)
         
             self.winner = self.checkWin()
         self.draw()
@@ -875,8 +816,6 @@ def setInitialValues():
                ["story8", "threeZombies", 0, 0, 800, 800],
                ["story9", "He", 0, 0, 800, 800]]
 
-    # buttons = []
-
     loadPics()
 
 def loadPics():
@@ -886,8 +825,6 @@ def loadPics():
     loadingImage = ImageTk.PhotoImage(image=loadingImage)
     screen.create_image(400, 400, image=loadingImage)
     screen.update()
-    # loading = PhotoImage(file="assets/loading.gif")
-    # screen.create_image(400, 400, image=loading)
 
     pics = {}
     prog = 0
@@ -953,12 +890,6 @@ def changePage(newPage):
         screen.create_image(400, 400, image=pics[newPage])
         page = newPage
 
-
-
-# def startPVP(X, Y, players):
-#     global board
-#     board = game(X=X, Y=Y, people=players, effects=2)
-
 def pvp3():
     global board
     board = game("sizes", X=3, Y=3, effects=1)
@@ -990,11 +921,6 @@ def He():
     global board, checkpoint
     checkpoint = "story9"
     board = campaignGame("story10", X=4, Y=4, effects=3, He=True)
-
-# def campaign():
-#     global board
-
-#     board = campaignGame(X=5, Y=5, people=4, effects=2, horde=True)
 
 def runGame():
     global board, page, clicked, scrollD, dump, qbits, deathTimer
@@ -1033,37 +959,6 @@ def runGame():
             if deathTimer == 0:
                 changePage(checkpoint)
                 deathTimer = 30
-
-        # if page == "modes":
-        #     for button in modes:
-        #         if button[1] < mouseX < button[3] and button[2] < mouseY < button[4] and clicked:
-        #             if button[0] == "PVP":
-        #                 sizeSelect()
-        #             elif button[0] == "Campaign":
-        #                 intro()
-
-        # if page == "sizes":
-        #     for button in sizes:
-        #         if button[1] < mouseX < button[3] and button[2] < mouseY < button[4] and clicked:
-        #             startPVP(int(button[0][0]), int(button[0][-1]), button[-1])
-
-        # if page == "PVP":
-        #     board.update()
-
-        # # print(page[0:4])
-
-        # if page[0:5] == "intro":
-
-        #     if page[-1] >= str(len(introPics)):
-        #         campaign()
-        #     elif clicked:
-        #         page = page[0:5] + str(int(page[-1]) + 1)
-        #         clicked = False
-        #     else:
-        #         dump.append(screen.create_image(400, 400, image=campaignPics[int(page[-1])], anchor="center"))
-
-        # if page == "campaign":
-        #     board.update()
 
         afterUpdates()
 
