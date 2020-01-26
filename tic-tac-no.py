@@ -1330,7 +1330,7 @@ def pvp4():
 #5x5 PVP
 def pvp5():
     global board
-    board = game("mode", X=5, Y=5, effects=1)
+    board = game("mode", X=5, Y=5, effects=1, people=4)
 
 #3x3 first campaign game
 def nonQuantum():
